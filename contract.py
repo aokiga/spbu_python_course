@@ -12,12 +12,13 @@ Any = object
 def check_args_types(arg_types, args):
     """
     Check whether args_types and types of args match.
+
     If arg_types is None, returns True.
 
     Args:
         arg_types: Required argument types.
         args: Arguments to check types.
-    
+
     Returns:
         True if types of args and arg_types match, False otherwise.
     """
@@ -25,17 +26,21 @@ def check_args_types(arg_types, args):
         return True
     if len(arg_types) != len(args):
         return False
-    isinstances = map(lambda x: isinstance(x[0], x[1]), zip(args, arg_types))
+    isinstances = map(
+        lambda pair: isinstance(pair[0], pair[1]),
+        zip(args, arg_types),
+    )
     return all(isinstances)
 
 
 def check_raises(function, raises, args):
     """
     Check if function raises allowed exception.
+
     If raises is None, no check would be performed.
 
     Args:
-        func: Function.
+        function: Function.
         raises: Allowed exceptions.
         args: Args of function.
 
@@ -49,34 +54,41 @@ def check_raises(function, raises, args):
     if raises is None:
         return function(*args)
     try:
-        result = function(*args)
-    except Exception as e:
-        if not any(map(lambda x : isinstance(e, x), raises)):
-            raise ContractError() from e
-        raise e
-    return result
+        result_value = function(*args)
+    except Exception as function_exception:
+        isinstances_raises = map(
+            lambda exc: isinstance(function_exception, exc),  # noqa: F821
+            raises,
+        )
+        if not any(isinstances_raises):
+            raise ContractError() from function_exception
+        raise function_exception
+    return result_value
 
 
-def check_return_type(return_type, result):
+def check_return_type(return_type, result_value):
     """
-    Check whether type of result and return_type match.
-    Returns True if return_type is None.
+    Check whether type of result_value and return_type match.
+
+        Returns True if return_type is None.
 
     Args:
-        return_type: Required result type.
-        result: Value to check type.
+        return_type: Required result_value type.
+        result_value: Value to check type.
 
     Returns:
-        True if types of result and return_type match, False otherwise.
+        True if types of result_value and return_type match, False otherwise.
     """
     if return_type is None:
         return True
-    return isinstance(result, return_type)
+    return isinstance(result_value, return_type)
 
 
 def contract(arg_types=None, return_type=None, raises=None):
     """
-    Decorator which checks argument types, raised exceptions and return type.
+    Return decorator which checks types.
+
+    Decorator checks types of arguments, type of return, raised exceptions.
 
     Args:
         arg_types: Required types of arguments.
@@ -85,20 +97,20 @@ def contract(arg_types=None, return_type=None, raises=None):
 
     Raises:
         ContractError: If a mismatch was found.
-    	
+
     Returns:
         Decorator.
     """
     def decorator(function):
-        def wrapped(*args):
+        def wrapped(*args):  # noqa: WPS430
             if not check_args_types(arg_types, args):
                 raise ContractError()
-            
-            result = check_raises(function, raises, args)
-            
-            if not check_return_type(return_type, result):
-                raise ContractError()                
-           
-            return result
+
+            result_value = check_raises(function, raises, args)
+
+            if not check_return_type(return_type, result_value):
+                raise ContractError()
+
+            return result_value
         return wrapped
     return decorator
