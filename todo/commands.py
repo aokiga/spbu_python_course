@@ -10,16 +10,49 @@ class BaseCommand(object):
         raise NotImplementedError()
 
 
+def _read_task_index(store):
+    task_index = int(input('Input index of task: '))
+    if 0 > task_index or task_index >= len(store.items):
+        raise IndexError('Index is out of bounds')
+    return task_index
+
+
+class DoneCommand(BaseCommand):
+    label = 'done'
+
+    def perform(self, store):
+        try:
+            task_index = _read_task_index(store)
+            store.items[task_index].done = True
+        except IndexError as ex:
+            print(str(ex))
+
+
+class UndoneCommand(BaseCommand):
+    label = 'undone'
+
+    def perform(self, store):
+        try:
+            task_index = _read_task_index(store)
+            store.items[task_index].done = False
+        except IndexError as ex:
+            print(str(ex))
+
+
 class ListCommand(BaseCommand):
     label = 'list'
+
 
     def perform(self, store):
         if len(store.items) == 0:
             print('There are no items in the storage.')
             return
 
+        def _is_done(obj):
+            return '+' if obj.done else '-'
+
         for index, obj in enumerate(store.items):
-            print('{0}: {1}'.format(index, str(obj)))
+            print('{0} {1}: {2}'.format(_is_done(obj), index, str(obj)))
 
 
 class NewCommand(BaseCommand):
